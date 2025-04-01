@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const session = require('express-session'); 
 const methodOverride = require('method-override');
 const bodyParser = require('body-parser');
@@ -38,6 +39,11 @@ app.use(session({
 app.use(flash()); //Sử dụng express-flash
 
 //End Flash
+
+//TinyMCE
+app.use('/tinymce', express.static(path.join(__dirname, 'node_modules', 'tinymce')));
+
+//End TinyMCE
 
 //App locals variables - biến toàn cục, sử dụng ở đâu cũng được
 app.locals.prefixAdmin = systemConfig.prefixAdmin; // biến prefixAdmin sẽ tồn tại ở trong tất cả các file pug, sử dụng ở đâu cũng được 

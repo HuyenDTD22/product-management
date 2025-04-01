@@ -32,6 +32,7 @@ router.get("/edit/:id", controller.edit); //Tính năng chỉnh sửa sản ph�
 router.patch(
     "/edit/:id",
     upload.single("thumbnail"),
+    uploadCloud.upload,
     validate.createPost,
     controller.editPatch
 ); //Tính năng chỉnh sửa sản phẩm

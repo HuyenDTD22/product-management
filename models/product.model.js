@@ -5,6 +5,10 @@ mongoose.plugin(slug);
 
 const productSchema = new mongoose.Schema({
     title: String,
+    product_category_id: {
+        type: String,
+        default: ""
+    },
     description: String,
     price: Number,
     discountPercentage: Number,
@@ -23,7 +27,7 @@ const productSchema = new mongoose.Schema({
     },
     deletedAt: Date
 }, {
-    timestamps: true // thời gian tạo mới sản phẩm //cái này tự động 
+    timestamps: true, // thời gian tạo mới sản phẩm //cái này tự động 
 });
 
 const Product = mongoose.model("Product", productSchema, "products");

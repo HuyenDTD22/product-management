@@ -1,10 +1,12 @@
 const Product = require("../../models/product.model");
+const ProductCategory = require("../../models/product-category.model");
 
 const systemConfig = require("../../config/system");
 
 const filterStatusHelper = require("../../helpers/filterStatus");
 const searchHelper = require("../../helpers/search");
 const paginationHelper = require("../../helpers/pagination");
+const createTreeHelper = require("../../helpers/createTree");
 
 //[GET] /admin/products
 module.exports.index = async (req, res) => {
@@ -29,8 +31,7 @@ module.exports.index = async (req, res) => {
     //Pagination - Phân trang
     const countProducts = await Product.countDocuments(find); //Đếm số lượng sản phẩm có trong database
 
-    let objectPagination = paginationHelper(
-        {
+    let objectPagination = paginationHelper({
             currentPage: 1,
             limitItems: 4
         },
@@ -39,8 +40,19 @@ module.exports.index = async (req, res) => {
     );
     // End Pagination
 
+    //Sort - tinh năng sắp xếp sản phẩm theo các tiêu chí khác nhau 
+    let sort = {}
+
+    if (req.query.sortKey && req.query.sortValue) {
+        sort[req.query.sortKey] = req.query.sortValue;
+    } else {
+        sort.position = "desc";
+    }
+
+    // End Sort
+
     const products = await Product.find(find)
-        .sort({ position: "desc"}) //sắp xếp giảm dần theo vị trí
+        .sort(sort) //sắp xếp 
         .limit(objectPagination.limitItems)
         .skip(objectPagination.skip); // lấy ra 4 sản phẩm đầu tiên bắt đầu từ vị trí objectPagination.skip
 
@@ -59,8 +71,12 @@ module.exports.changeStatus = async (req, res) => {
     const status = req.params.status;
     const id = req.params.id;
 
-    await Product.updateOne({ _id: id }, { status: status }) //Hàm update 1 sản phẩm trong database
-    
+    await Product.updateOne({
+        _id: id
+    }, {
+        status: status
+    }) //Hàm update 1 sản phẩm trong database
+
     req.flash("success", "Cập nhật trạng thái thành công!");
 
     res.redirect("back"); //Làm cho khi click vào nó link sang 1 trang khác rồi sẽ tự động chuyển hướng về trang trước(hay còn gọi là trang hiện tại) 
@@ -70,18 +86,37 @@ module.exports.changeStatus = async (req, res) => {
 module.exports.changeMulti = async (req, res) => {
     const type = req.body.type; //Lây ra type là active hay inactive
     const ids = req.body.ids.split(", "); //Lấy ra các id của các phần tử được tích trong ids rồi convert sang 1 mảng
-    
+
     switch (type) {
         case "active":
-            await Product.updateMany({ _id: { $in: ids } }, { status: "active" }); //update giá trị của trường status thành "active" đối với những tài liệu có _id nằm trong danh sách ids.
+            await Product.updateMany({
+                _id: {
+                    $in: ids
+                }
+            }, {
+                status: "active"
+            }); //update giá trị của trường status thành "active" đối với những tài liệu có _id nằm trong danh sách ids.
             req.flash("success", `Cập nhật trạng thái thành công ${ids.length} sản phẩm!`);
             break;
         case "inactive":
-            await Product.updateMany({ _id: { $in: ids } }, { status: "inactive" });
+            await Product.updateMany({
+                _id: {
+                    $in: ids
+                }
+            }, {
+                status: "inactive"
+            });
             req.flash("success", `Cập nhật trạng thái thành công ${ids.length} sản phẩm!`);
             break;
         case "delete-all": //Tính năng xoá nhiều sản phẩm 
-            await Product.updateMany({ _id: { $in: ids } }, { deleted: true, deletedAt: new Date() }); 
+            await Product.updateMany({
+                _id: {
+                    $in: ids
+                }
+            }, {
+                deleted: true,
+                deletedAt: new Date()
+            });
             req.flash("success", `Đã xoá thành công ${ids.length} sản phẩm!`);
             break;
         case "change-position": //Tính năng thay đổi vị trí của nhiều sản phẩm
@@ -89,7 +124,11 @@ module.exports.changeMulti = async (req, res) => {
                 let [id, position] = item.split("-");
                 position = parseInt(position);
 
-                await Product.updateOne({ _id: id }, { position: position}); 
+                await Product.updateOne({
+                    _id: id
+                }, {
+                    position: position
+                });
             }
             req.flash("success", `Đổi vị trí thành công ${ids.length} sản phẩm!`);
             break;
@@ -103,8 +142,13 @@ module.exports.changeMulti = async (req, res) => {
 module.exports.deleteItem = async (req, res) => {
     const id = req.params.id //Lấy ra id
 
-    await Product.updateOne({ _id: id }, { deleted: true, deletedAt: new Date() }); //cập nhật giá trị của trường deleted là true đồng thời cập nhật luôn thời gian xoá của 1 sp trong database có id là id
-    
+    await Product.updateOne({
+        _id: id
+    }, {
+        deleted: true,
+        deletedAt: new Date()
+    }); //cập nhật giá trị của trường deleted là true đồng thời cập nhật luôn thời gian xoá của 1 sp trong database có id là id
+
     req.flash("success", `Đã xoá thành công sản phẩm!`);
 
     res.redirect("back");
@@ -112,8 +156,17 @@ module.exports.deleteItem = async (req, res) => {
 
 //[GET] /admin/products/create - //Tính năng lấy ra trang tạo sản phẩm
 module.exports.create = async (req, res) => {
+    let find = {
+        deleted: false
+    };
+
+    const category = await ProductCategory.find(find);
+
+    const newcategory = createTreeHelper.tree(category);
+
     res.render("admin/pages/products/create", {
         pageTitle: "Thêm mới sản phẩm",
+        category: newcategory
     });
 }
 
@@ -122,7 +175,7 @@ module.exports.createPost = async (req, res) => {
     req.body.price = parseInt(req.body.price);
     req.body.discountPercentage = parseInt(req.body.discountPercentage);
     req.body.stock = parseInt(req.body.stock);
-    
+
     if (req.body.position == "") {
         const countProducts = await Product.countDocuments();
         req.body.position = countProducts + 1;
@@ -143,12 +196,17 @@ module.exports.edit = async (req, res) => {
             deleted: false,
             _id: req.params.id
         }
-    
+
         const product = await Product.findOne(find);
+
+        const category = await ProductCategory.find({deleted: false});
     
+        const newcategory = createTreeHelper.tree(category);
+
         res.render("admin/pages/products/edit", {
             pageTitle: "Chỉnh sửa sản phẩm",
-            product: product
+            product: product,
+            category: newcategory
         });
     } catch (error) {
         res.redirect(`${systemConfig.prefixAdmin}/products`);
@@ -164,12 +222,14 @@ module.exports.editPatch = async (req, res) => {
     req.body.stock = parseInt(req.body.stock);
     req.body.position = parseInt(req.body.position);
 
-    if(req.file) {
+    if (req.file) {
         req.body.thumbnail = `/uploads/${req.file.filename}`;
     }
 
     try {
-        await Product.updateOne({ _id: id }, req.body); 
+        await Product.updateOne({
+            _id: id
+        }, req.body);
         req.flash("success", `Cập nhật thành công!`);
     } catch (error) {
         req.flash("error", `Cập nhật thất bại!`);
@@ -185,9 +245,9 @@ module.exports.detail = async (req, res) => {
             deleted: false,
             _id: req.params.id
         }
-    
+
         const product = await Product.findOne(find);
-    
+
         res.render("admin/pages/products/detail", {
             pageTitle: product.title,
             product: product

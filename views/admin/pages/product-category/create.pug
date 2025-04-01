@@ -3,13 +3,12 @@ include ../../mixins/alert.pug
 include ../../mixins/select-tree.pug
 
 block main
+  h1(class="mb-4") Thêm mới danh mục sản phẩm
+
   +alert-error(5000)
 
-  h1(class="mb-4") Thêm mới sản phẩm
-
   form(
-    action=`${prefixAdmin}/products/create`
-    id="form-create-product"
+    action=`${prefixAdmin}/product-category/create`
     method="POST"
     enctype="multipart/form-data"
   )
@@ -20,65 +19,32 @@ block main
         class="form-control"
         id="title"
         name="title"
-        required 
+        required
       )
-
     div(class="form-group")
-      label(for="product_category_id") Danh mục
+      label(for="parent_id") Danh mục cha
       select(
-        name="product_category_id"
-        id="product_category_id"
+        name="parent_id"
+        id="parent_id"
         class="form-control"
       )
-        option(value="") -- Chọn danh mục --
-        if(category)
-          +select-tree(category)
+        option(value="") -- Chọn danh mục cha --
+        if(records)
+          +select-tree(records)
 
     div(class="form-group")
       label(for="desc") Mô tả
       textarea(
+        type="text"
         class="form-control textarea-mce"
         id="desc"
         name="description"
         rows="5"
+        textarea-mce
       )
-
-    div(class="form-group")
-      label(for="price") Giá
-      input(
-        type="number"
-        class="form-control"
-        id="price"
-        name="price"
-        value="0"
-        min="0"
-      )
-
-    div(class="form-group")
-      label(for="discount") % Giảm giá
-      input(
-        type="number"
-        class="form-control"
-        id="discountPercentage"
-        name="discountPercentage"
-        value="0"
-        min="0"
-      )
-
-    div(class="form-group")
-      label(for="stock") Số lượng
-      input(
-        type="number"
-        class="form-control"
-        id="stock"
-        name="stock"
-        value="0"
-        min="0"
-      )
-
     div(
       class="form-group"
-      upload-image 
+      upload-image
     )
       label(for="thumbnail") Ảnh
       input(
@@ -91,10 +57,9 @@ block main
       )
       img(
         src=""
-        upload-image-preview
         class="image-preview"
+        upload-image-preview
       )
-
     div(class="form-group")
       label(for="position") Vị trí
       input(
@@ -105,7 +70,6 @@ block main
         placeholder="Tự động tăng"
         min="1"
       )
-
     div(class="form-group form-check form-check-inline")
       input(
         type="radio"
@@ -116,17 +80,15 @@ block main
         checked
       )
       label(for="statusActive" class="form-check-label") Hoạt động
-
     div(class="form-group form-check form-check-inline")
       input(
         type="radio"
         class="form-check-input"
-        id="statusInActive"
+        id="statusInactive"
         name="status"
         value="inactive"
       )
-      label(for="statusInActive" class="form-check-label") Dừng hoạt động
-
+      label(for="statusInactive" class="form-check-label") Dừng hoạt động
     div(class="form-group")
       button(
         type="submit"
