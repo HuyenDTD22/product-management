@@ -10,9 +10,10 @@ block main
             .row
                 .col-8
                 .col-4
-                    a.btn.btn-outline-success(
-                        href=`${prefixAdmin}/product-category/create`
-                    ) + thêm mới
+                    if(role.permissions.includes("products-category_create"))
+                        a.btn.btn-outline-success(
+                            href=`${prefixAdmin}/product-category/create`
+                        ) + thêm mới
 
             table.table.table-hover.table-sm(
                 checkbox-multi
